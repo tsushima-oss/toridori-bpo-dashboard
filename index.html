@@ -46,9 +46,12 @@
 
   /* KPI strip */
   .kpis{grid-template-columns:repeat(5,1fr);margin-top:20px;}
+  .kpis.kpis4{grid-template-columns:repeat(4,1fr);}
   .kpi{background:linear-gradient(135deg,#cd001a 0%,#e63956 100%);border:none;border-radius:14px;padding:16px 18px;box-shadow:0 4px 16px rgba(205,0,26,.28);}
   .kpi .num{font-size:30px;font-weight:800;color:#fff;line-height:1.1;}
   .kpi .lbl{color:rgba(255,255,255,.88);font-size:14px;margin-top:4px;font-weight:600;}
+  .kpi .kpi-sub{margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.9);font-size:12px;font-weight:600;line-height:1.4;}
+  .kpi .kpi-sub b{font-weight:800;color:#fff;}
   .kpi.done{background:linear-gradient(135deg,#027223 0%,#10893a 100%);box-shadow:0 4px 16px rgba(2,114,35,.28);}
   .kpi.fin{background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%);box-shadow:0 4px 16px rgba(124,58,237,.28);}
   .kpi.prog{background:linear-gradient(135deg,#0057b7 0%,#2f80ed 100%);box-shadow:0 4px 16px rgba(0,87,183,.28);}
@@ -264,11 +267,10 @@
   </div>
 
   <!-- KPI -->
-  <section class="grid kpis">
+  <section class="grid kpis kpis4">
     <div class="kpi"><div class="num" id="kpiTotal">—</div><div class="lbl">現在の管理案件数（集約後）</div></div>
     <div class="kpi done"><div class="num" id="kpiDone">—</div><div class="lbl">完了・運用フェーズ</div></div>
-    <div class="kpi fin"><div class="num" id="kpiFin">—</div><div class="lbl">制作・進行中</div></div>
-    <div class="kpi prog"><div class="num" id="kpiProg">—</div><div class="lbl">クライアント確認待ち</div></div>
+    <div class="kpi prog"><div class="num" id="kpiLive">—</div><div class="lbl">現在進行中案件</div><div class="kpi-sub">制作進行中 <b id="kpiMake">—</b>　／　クライアント確認待ち <b id="kpiWait">—</b></div></div>
     <div class="kpi todo"><div class="num" id="kpiTodo">—</div><div class="lbl">保留（方針待ち）</div></div>
   </section>
 
@@ -516,14 +518,16 @@ function catChip(c){const col=CATS[c];return `<span class="dom" style="backgroun
 
 /* ---- 集計・カード・ドーナツ ---- */
 function renderSummary(){
-  const impl=cnt("最終調整中")+cnt("制作・分析中")+cnt("進行中");
-  const wait=cnt("確認待ち")+cnt("ヒアリング中");
+  const make=cnt("最終調整中")+cnt("制作・分析中")+cnt("進行中"); // 制作進行中
+  const wait=cnt("確認待ち")+cnt("ヒアリング中"); // クライアント確認待ち
+  const live=make+wait; // 現在進行中案件
   document.getElementById("kpiTotal").textContent=T.length;
   document.getElementById("kpiDone").textContent=cnt("完了");
-  document.getElementById("kpiFin").textContent=impl;
-  document.getElementById("kpiProg").textContent=wait;
+  document.getElementById("kpiLive").textContent=live;
+  document.getElementById("kpiMake").textContent=make;
+  document.getElementById("kpiWait").textContent=wait;
   document.getElementById("kpiTodo").textContent=cnt("保留");
-  document.getElementById("donutBig").textContent=cnt("完了")+impl;
+  document.getElementById("donutBig").textContent=cnt("完了")+make;
   const AGG=17; // 当初51項目のうち、ダッシュボード統合・バンドルで他案件に集約・吸収した数（＝業績予測系12→1 ほか）
   const add=T.length-(51-AGG); // 新規追加＝現在の管理数 －（51 － 集約）。常に 51 － AGG ＋ add ＝ 現在 で辻褄が合う
   document.getElementById("rcAgg").textContent="△"+AGG;
