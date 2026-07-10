@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>toridori BPOダッシュボード ｜ AIKEN BPO</title>
+<style>
+  :root{
+    /* toridori ブランドトーン：白/黒ベース＋トリドリレッド主役＋ロゴ4色アクセント（青/緑/赤/黄） */
+    --bg:#f8fafc; --card:#ffffff; --line:#e2e8f0; --line2:#eef2f6;
+    --txt:#0f172a; --muted:#475569; --soft:#94a3b8;
+    --green:#cd001a; --green-d:#a30016; --green-bg:#fdecee; --blue:#0057b7; --navy:#1e293b;
+    --done:#027223; --prog:#0057b7; --check:#cd001a; --hold:#64748b; --todo:#cbd5e1;
+    --tori-red:#cd001a; --tori-blue:#0057b7; --tori-green:#027223; --tori-yellow:#ffd100; --tori-gold:#b8860b;
+    --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif;background:var(--bg);color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 28px 72px;}
+  a{color:var(--blue);text-decoration:none}
+
+  .brandbar{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;}
+  .brandbar .inner{max-width:1200px;margin:0 auto;padding:15px 28px;display:flex;align-items:center;gap:14px;}
+  .tori-logo{display:inline-flex;align-items:center;}
+  .tori-logo svg{height:27px;width:auto;display:block;}
+  .brandtitle{font-size:18px;font-weight:800;color:var(--txt);border-left:1px solid var(--line);padding-left:14px;letter-spacing:.02em;}
+  .byline{margin-left:auto;font-size:15.5px;color:var(--muted);font-weight:700;letter-spacing:.05em;}
+  .byline b{color:var(--green)}
+  .nav-link{margin-left:14px;display:inline-flex;align-items:center;gap:6px;background:var(--tori-red);color:#fff;font-size:15px;font-weight:700;padding:8px 15px;border-radius:9px;text-decoration:none;white-space:nowrap}
+
+  .titleblock{padding:34px 0 8px;}
+  .eyebrow{font-size:14px;letter-spacing:.16em;font-weight:700;color:var(--green);text-transform:uppercase;}
+  .titleblock h1{font-size:29px;font-weight:800;margin:8px 0 6px;line-height:1.4;color:var(--green-d);}
+  .titleblock p{font-size:16px;color:var(--muted);max-width:920px;line-height:1.95;}
+  .titleblock p .gap{display:block;height:10px;}
+  .srcrow{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;}
+  .srcbtn{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);color:var(--green-d);font-size:15px;font-weight:700;padding:10px 16px;border-radius:11px;text-decoration:none;box-shadow:var(--shadow);}
+  .srcbtn:hover{border-color:var(--green);}
+  .srcbtn .ar{color:var(--soft);}
+
+  h2{font-size:20px;font-weight:800;margin:42px 0 6px;display:flex;align-items:center;gap:10px;}
+  h2 .bar{width:5px;height:19px;border-radius:3px;background:var(--green);display:inline-block;}
+  .h2sub{color:var(--muted);font-size:15px;margin:0 0 18px 15px;}
+  .grid{display:grid;gap:16px;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);}
+
+  /* KPI strip */
+  .kpis{grid-template-columns:repeat(5,1fr);margin-top:20px;}
+  .kpi{background:linear-gradient(135deg,#cd001a 0%,#e63956 100%);border:none;border-radius:14px;padding:16px 18px;box-shadow:0 4px 16px rgba(205,0,26,.28);}
+  .kpi .num{font-size:30px;font-weight:800;color:#fff;line-height:1.1;}
+  .kpi .lbl{color:rgba(255,255,255,.88);font-size:14px;margin-top:4px;font-weight:600;}
+  .kpi.done{background:linear-gradient(135deg,#027223 0%,#10893a 100%);box-shadow:0 4px 16px rgba(2,114,35,.28);}
+  .kpi.fin{background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%);box-shadow:0 4px 16px rgba(124,58,237,.28);}
+  .kpi.prog{background:linear-gradient(135deg,#0057b7 0%,#2f80ed 100%);box-shadow:0 4px 16px rgba(0,87,183,.28);}
+  .kpi.todo{background:linear-gradient(135deg,#475569 0%,#64748b 100%);box-shadow:0 4px 16px rgba(71,85,105,.28);}
+
+  /* category overview cards (clickable) */
+  .catgrid{grid-template-columns:repeat(4,1fr);margin-top:18px;}
+  .catcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 17px;box-shadow:var(--shadow);cursor:pointer;transition:.15s;border-left:4px solid var(--green);}
+  .catcard:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(15,23,42,.10);}
+  .catcard .ch{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;}
+  .catcard .cname{font-size:15.5px;font-weight:800;color:var(--txt);line-height:1.35;}
+  .catcard .ccnt{font-size:24px;font-weight:800;flex:none;}
+  .catcard .ctrack{height:9px;border-radius:6px;background:var(--line2);overflow:hidden;display:flex;}
+  .catcard .ctrack i{display:block;height:100%;}
+  .catcard .cmeta{margin-top:9px;font-size:13px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;}
+  .catcard .cmeta span b{color:var(--txt);}
+
+  /* impact */
+  .impact{grid-template-columns:1.35fr 1fr;align-items:start;}
+  .panel .pad{padding:20px 22px;}
+  .panel h3{font-size:16px;font-weight:800;margin-bottom:16px;}
+  .dbar{display:flex;align-items:center;gap:10px;margin-bottom:11px;font-size:15px;}
+  .dbar .nm{width:150px;flex:none;color:var(--txt);font-size:14.5px;}
+  .dbar .track{flex:1;height:18px;background:var(--line2);border-radius:9px;overflow:hidden;display:flex;}
+  .dbar .track i{display:block;height:100%;}
+  .dbar .track .pg{background:var(--prog)} .dbar .track .ck{background:var(--check)} .dbar .track .h{background:var(--hold)} .dbar .track .td{background:var(--todo)} .dbar .track .d{background:var(--done)} .dbar .track .fin{background:#7c3aed} .dbar .track .mg{background:#64748b}
+  .dbar .cnt{width:34px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:700;}
+  .donut-wrap{display:flex;align-items:center;gap:22px;}
+  .donut{width:150px;height:150px;border-radius:50%;flex:none;}
+  .donut-c{position:relative;}
+  .donut-c .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .donut-c .ctr .big{font-size:32px;font-weight:800;color:var(--done);line-height:1;}
+  .donut-c .ctr .sm{font-size:13px;color:var(--muted);}
+  .slegend{display:flex;flex-direction:column;gap:9px;}
+  .slegend .it{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--muted);}
+  .slegend .it b{color:var(--txt)} .slegend .sw{width:12px;height:12px;border-radius:4px;}
+
+  /* table */
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px;}
+  .finfo{display:none;align-items:center;gap:14px;margin:0 0 14px;padding:9px 15px;background:var(--green-bg);border:1px solid #cfddf6;border-radius:10px;font-size:15px;color:var(--green-d);}
+  .finfo b{color:var(--txt)}
+  .finfo button{margin-left:auto;background:#fff;border:1px solid var(--green);color:var(--green-d);font-size:14px;font-weight:700;padding:5px 12px;border-radius:18px;cursor:pointer;}
+  .finfo button:hover{background:var(--green);color:#fff;}
+  .chip{background:#fff;border:1px solid var(--line);color:var(--muted);padding:6px 13px;border-radius:20px;font-size:14.5px;cursor:pointer;user-select:none;transition:.15s;}
+  .chip:hover{border-color:var(--green);color:var(--txt)}
+  .chip.active{background:var(--green);border-color:var(--green);color:#fff;font-weight:700;}
+  .chip.live{border-color:#2563eb;color:#1e40af;font-weight:700;}
+  .chip.live:hover{border-color:#2563eb;color:#1e40af;background:#eff4ff;}
+  .chip.live.active{background:#2563eb;border-color:#2563eb;color:#fff;}
+  .fsel{font-family:inherit;font-size:14.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 12px;cursor:pointer;outline:none;}
+  .fsel:hover{border-color:var(--green);color:var(--txt);}
+  .fsel:focus{border-color:var(--green);}
+  .tablecard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+  table{width:100%;border-collapse:collapse;}
+  th,td{padding:10px 13px;text-align:left;font-size:14.5px;border-bottom:1px solid var(--line2);vertical-align:top;}
+  th{background:#f8fafc;color:var(--muted);font-weight:700;font-size:13px;letter-spacing:.03em;}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#f5f8fc}
+  tr.gh td{background:#f1f5f9;font-weight:800;color:var(--navy);font-size:14.5px;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:13px;font-weight:700;white-space:nowrap;}
+  .dom{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+  .dom .pc{width:7px;height:7px;border-radius:50%;}
+  .tools{display:flex;flex-wrap:wrap;gap:4px;}
+  .tool{font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:6px;background:#eef4fb;color:#2768a8;border:1px solid #d9e8f6;white-space:nowrap;}
+  .pribadge{display:inline-block;font-size:12px;font-weight:800;padding:1px 8px;border-radius:20px;background:#fde4ea;color:#be123c;border:1px solid #f7c3d1;margin-left:6px;vertical-align:middle;}
+  .bundlebadge{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:20px;background:#ede9fe;color:#6d28d9;margin-left:6px;vertical-align:middle;}
+  .owners{display:flex;flex-wrap:wrap;gap:4px;}
+  .own{font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;white-space:nowrap;}
+  .num-cell{color:var(--soft);font-variant-numeric:tabular-nums;}
+  .note{color:#566570;font-size:13.5px;max-width:330px;}
+  footer{margin-top:44px;text-align:center;padding-top:24px;border-top:1px solid var(--line);}
+  .aiken-logo{height:36px;width:auto;opacity:.92;}
+  .ftnote{font-size:13px;color:var(--soft);margin-top:10px;}
+  @media(max-width:880px){.kpis{grid-template-columns:repeat(2,1fr)}.catgrid{grid-template-columns:1fr 1fr}.impact{grid-template-columns:1fr}}
+
+  /* ===== 編集・保存バー ===== */
+  .savebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  .savebar .sb-on{display:inline-flex;align-items:center;gap:7px;font-size:14.5px;font-weight:700;color:var(--done);}
+  .savebar .sb-on .dot{width:8px;height:8px;border-radius:50%;background:var(--done);box-shadow:0 0 0 3px rgba(2,114,35,.15);}
+  .savebar .sb-meta{font-size:13.5px;color:var(--soft);}
+  .savebar .sb-sp{margin-left:auto;}
+  .sbtn{display:inline-flex;align-items:center;gap:6px;font-size:14.5px;font-weight:700;border-radius:9px;padding:7px 13px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--txt);}
+  .sbtn:hover{border-color:var(--green);color:var(--green-d);}
+  .sbtn.red{background:var(--tori-red);color:#fff;border-color:var(--tori-red);}
+  .sbtn.red:hover{filter:brightness(1.06);color:#fff;}
+  /* ===== 検索 ===== */
+  .searchwrap{position:relative;flex:1;min-width:200px;max-width:330px;}
+  #searchBox{width:100%;font-family:inherit;font-size:15px;padding:8px 13px 8px 32px;border:1px solid var(--line);border-radius:20px;outline:none;}
+  #searchBox:focus{border-color:var(--green);}
+  .searchwrap .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--soft);font-size:15px;pointer-events:none;}
+  /* ===== テーブル拡張 ===== */
+  .trow{cursor:pointer;}
+  .blkbadge{display:inline-block;font-size:12px;font-weight:800;padding:1px 8px;border-radius:20px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;margin-left:6px;vertical-align:middle;}
+  .confd{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  /* ===== 編集ドロワー ===== */
+  #drawerBack{position:fixed;inset:0;background:rgba(15,23,42,.4);opacity:0;visibility:hidden;transition:.2s;z-index:90;}
+  #drawerBack.open{opacity:1;visibility:visible;}
+  #drawer{position:fixed;top:0;right:0;height:100%;width:680px;max-width:96vw;background:#fff;box-shadow:-8px 0 30px rgba(15,23,42,.18);transform:translateX(100%);transition:.25s;z-index:100;display:flex;flex-direction:column;}
+  #drawer.open{transform:translateX(0);}
+  .dk-head{padding:18px 50px 16px 22px;border-bottom:1px solid var(--line);position:relative;}
+  .dk-head .dk-no{font-size:13px;font-weight:700;color:var(--soft);}
+  .dk-head h3{font-size:18px;font-weight:800;margin-top:3px;line-height:1.4;}
+  .dk-head .dk-meta{margin-top:9px;display:flex;gap:6px;flex-wrap:wrap;}
+  .dk-close{position:absolute;top:14px;right:16px;font-size:24px;line-height:1;color:var(--soft);cursor:pointer;background:none;border:none;}
+  .dk-close:hover{color:var(--txt);}
+  .dk-body{padding:16px 22px;overflow-y:auto;flex:1;}
+  .fld{margin-bottom:14px;}
+  .fld label{display:block;font-size:13.5px;font-weight:700;color:var(--muted);margin-bottom:5px;}
+  .fld input[type=text],.fld input[type=date],.fld textarea,.fld select{width:100%;font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:9px;padding:8px 11px;outline:none;color:var(--txt);background:#fff;}
+  .fld textarea{resize:vertical;min-height:56px;line-height:1.65;}
+  .fld input:focus,.fld textarea:focus,.fld select:focus{border-color:var(--green);}
+  .fld2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .dk-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;}
+  .todaybtn{font-size:13px;font-weight:700;color:var(--green-d);background:var(--green-bg);border:1px solid #f3c9cf;border-radius:7px;padding:6px 10px;cursor:pointer;white-space:nowrap;}
+  /* ===== 議事録パネル ===== */
+  .mtgpanel{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;}
+  .mtgpanel textarea{width:100%;font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:10px;padding:11px 13px;min-height:120px;resize:vertical;outline:none;line-height:1.7;}
+  .mtgpanel textarea:focus{border-color:var(--green);}
+  .mtg-row{display:flex;gap:10px;align-items:center;margin-top:11px;flex-wrap:wrap;}
+  .mtg-result{margin-top:14px;display:flex;flex-direction:column;gap:11px;}
+  .mtg-empty{font-size:14.5px;color:var(--soft);padding:6px 0;}
+  .mtgcard{border:1px solid var(--line);border-left:4px solid var(--prog);border-radius:11px;padding:13px 15px;background:#fff;}
+  .mtgcard.off{opacity:.5;}
+  .mtgcard .mc-head{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+  .mtgcard .mc-head input[type=checkbox]{width:16px;height:16px;flex:none;}
+  .mtgcard .mc-no{font-size:13px;font-weight:700;color:var(--soft);}
+  .mtgcard .mc-nm{font-size:15.5px;font-weight:800;}
+  .mtgcard .mc-ref{font-size:13.5px;color:var(--muted);background:#f8fafc;border:1px solid var(--line2);border-radius:8px;padding:7px 10px;margin-bottom:9px;line-height:1.6;}
+  .mtgcard .mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .mtgcard .mc-grid .full{grid-column:1/-1;}
+  .mtgcard label{font-size:12.5px;font-weight:700;color:var(--muted);display:block;margin-bottom:3px;}
+  .mtgcard input[type=text],.mtgcard input[type=date],.mtgcard select,.mtgcard textarea{width:100%;font-family:inherit;font-size:14.5px;border:1px solid var(--line);border-radius:7px;padding:6px 9px;outline:none;}
+  .mtgcard textarea{min-height:40px;resize:vertical;line-height:1.55;}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0f172a;color:#fff;font-size:15px;font-weight:700;padding:11px 20px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;visibility:hidden;transition:.25s;z-index:120;}
+  .toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
+  @media(max-width:640px){.mtgcard .mc-grid{grid-template-columns:1fr;}.fld2{grid-template-columns:1fr;}}
+  /* ===== 集計の考え方（51→集約→現在） ===== */
+  .reconcile{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+  .rc-box{text-align:center;padding:10px 18px;border-radius:12px;min-width:118px;}
+  .rc-box.start{background:#eef2f6;}
+  .rc-box.now{background:linear-gradient(135deg,#cd001a 0%,#e63956 100%);box-shadow:0 4px 14px rgba(205,0,26,.25);}
+  .rc-box .n{font-size:28px;font-weight:800;line-height:1;color:var(--navy);}
+  .rc-box.now .n{color:#fff;}
+  .rc-box .t{font-size:13px;margin-top:6px;color:var(--muted);font-weight:600;line-height:1.4;}
+  .rc-box.now .t{color:rgba(255,255,255,.92);}
+  .rc-op{font-size:14px;font-weight:800;color:var(--green-d);white-space:nowrap;text-align:center;line-height:1.3;}
+  .rc-op em{font-style:normal;font-size:19px;font-weight:800;}
+  .rc-op.agg em{color:var(--tori-red);}
+  .rc-op.add em{color:#059669;}
+  .rc-op small{display:block;font-size:11px;color:var(--soft);font-weight:600;margin-top:2px;max-width:172px;white-space:normal;}
+  .rc-arrow{font-size:20px;font-weight:800;color:var(--soft);}
+  .rc-note{font-size:13px;color:var(--muted);line-height:1.8;margin:12px 2px 0;padding-left:2px;}
+  .rc-note b{color:var(--txt);}
+  @media(max-width:820px){.reconcile{flex-direction:column;}.rc-arrow{transform:rotate(90deg);}}
+  /* ===== 経緯 マイルストーン ===== */
+  .mstones{margin-top:18px;}
+  .mstone{display:flex;gap:14px;align-items:flex-start;padding-bottom:16px;}
+  .mstone .md{flex:none;width:92px;text-align:right;font-size:14px;font-weight:800;color:var(--green-d);padding-top:12px;line-height:1.4;}
+  .mstone .mdot{flex:none;width:14px;position:relative;align-self:stretch;}
+  .mstone .mdot i{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:13px;height:13px;border-radius:50%;background:var(--tori-red);border:2px solid #fff;box-shadow:0 0 0 2px var(--tori-red);z-index:1;}
+  .mstone .mdot::before{content:"";position:absolute;top:20px;bottom:-16px;left:50%;transform:translateX(-50%);width:2px;background:var(--line);}
+  .mstone:last-child .mdot::before{display:none;}
+  .mstone.now .mdot i{background:#059669;box-shadow:0 0 0 2px #059669;}
+  .mstone .mc{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 16px;box-shadow:var(--shadow);}
+  .mstone.now .mc{border-color:#059669;background:#f0fdf7;}
+  .mstone .mt{font-size:16px;font-weight:800;margin-bottom:3px;}
+  .mstone.now .mt{color:#059669;}
+  .mstone .mb{font-size:14.5px;color:var(--muted);line-height:1.75;}
+  @media(max-width:640px){.mstone .md{width:64px;font-size:13px;}}
+  /* ===== 累積 進行案件数チャート ===== */
+  .cum-card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px 20px 14px;margin-top:18px;}
+  .cum-wrap{display:flex;align-items:flex-end;gap:12px;padding:26px 4px 6px;overflow-x:auto;}
+  .cum-col{display:flex;flex-direction:column;align-items:center;gap:7px;flex:1;min-width:72px;}
+  .cum-total{font-size:19px;font-weight:800;color:var(--green-d);line-height:1;}
+  .cum-bar{width:100%;max-width:62px;display:flex;flex-direction:column;border-radius:8px 8px 0 0;overflow:hidden;box-shadow:0 2px 6px rgba(15,23,42,.08);}
+  .cum-bar .seg-new{background:linear-gradient(180deg,#cd001a 0%,#e63956 100%);}
+  .cum-bar .seg-done{background:linear-gradient(180deg,#10b981 0%,#059669 100%);}
+  .cum-col.now .cum-total{color:var(--tori-red);font-size:22px;}
+  .cum-m{font-size:14px;font-weight:700;color:var(--muted);}
+  .cum-new{font-size:13px;font-weight:800;color:var(--tori-red);}
+  .cum-new.zero{color:var(--soft);font-weight:600;}
+  .cum-legend{display:flex;gap:18px;justify-content:center;padding-top:10px;border-top:1px solid var(--line2);margin-top:6px;font-size:14px;color:var(--muted);}
+  .cum-legend .it{display:flex;align-items:center;gap:7px;}
+  .cum-legend .sw{width:13px;height:13px;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="brandbar">
+  <div class="inner">
+    <span class="tori-logo"><svg width="195" height="40" viewBox="0 0 195 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M63.0881 9.04541H58.0123V15.253H56V19.6557H58.0123V33.4115H63.0881V19.6557H67.4796V15.253H63.0881V9.04541Z" fill="black"/><path d="M137.84 17.6005V17.6146C136.073 15.5614 134.266 14.6823 131.785 14.6823C126.78 14.6823 122.912 18.8734 122.912 24.3203C122.912 29.852 126.739 34.0007 131.869 34.0007C134.393 34.0007 136.202 33.1216 137.841 31.0684V33.4123H142.916V1.99902H137.84V17.6005ZM133.31 29.4357C130.416 29.4357 128.153 27.1708 128.153 24.2766C128.153 21.5517 130.501 19.2445 133.269 19.2445C136.121 19.2445 138.427 21.5094 138.427 24.3613C138.427 27.1722 136.121 29.4357 133.31 29.4357Z" fill="black"/><path d="M157.935 14.6826C151.854 14.6826 147.492 18.6634 147.492 24.1951C147.492 30.0202 151.686 34.001 157.767 34.001C163.973 34.001 168.251 30.0626 168.251 24.3207C168.251 18.6211 164.015 14.6826 157.935 14.6826ZM157.892 29.436C154.999 29.436 152.735 27.1712 152.735 24.2769C152.735 21.552 155.083 19.2448 157.851 19.2448C160.703 19.2448 163.009 21.5097 163.009 24.3616C163.009 27.1726 160.702 29.436 157.892 29.436Z" fill="black"/><path d="M191.925 10.6381C193.603 10.6381 194.945 9.25378 194.945 7.57735C194.945 5.85718 193.603 4.5166 191.925 4.5166C190.248 4.5166 188.865 5.90092 188.865 7.53643C188.863 9.25519 190.205 10.6381 191.925 10.6381Z" fill="black"/><path d="M194.442 15.2715H189.367V33.4116H194.442V15.2715Z" fill="black"/><path d="M177.291 18.0369V15.2711H172.216V33.4112H177.291V24.7045C177.291 22.6513 177.584 21.5182 178.422 20.5544C179.177 19.7148 180.268 19.2547 181.651 19.2547C182.657 19.2547 183.161 19.3803 184.084 19.8841L184.797 15.1455C183.874 14.7688 183.37 14.6841 182.574 14.6841C180.268 14.6827 178.59 15.7311 177.291 18.0369Z" fill="black"/><path d="M81.2183 14.6826C75.1377 14.6826 70.7759 18.6634 70.7759 24.1951C70.7759 30.0202 74.9698 34.001 81.0503 34.001C87.2565 34.001 91.5351 30.0626 91.5351 24.3207C91.5351 18.6211 87.2988 14.6826 81.2183 14.6826ZM81.1759 29.436C78.2831 29.436 76.0182 27.1712 76.0182 24.2769C76.0182 21.552 78.3664 19.2448 81.135 19.2448C83.9869 19.2448 86.2927 21.5097 86.2927 24.3616C86.2927 27.1726 83.9855 29.436 81.1759 29.436Z" fill="black"/><path d="M115.209 4.5166C113.531 4.5166 112.148 5.90092 112.148 7.53643C112.148 9.25519 113.49 10.6395 115.209 10.6395C116.887 10.6395 118.229 9.25519 118.229 7.57876C118.228 5.85718 116.886 4.5166 115.209 4.5166Z" fill="black"/><path d="M117.725 15.2715H112.651V33.4116H117.725V15.2715Z" fill="black"/><path d="M100.577 18.0369V15.2711H95.5024V33.4112H100.577V24.7045C100.577 22.6513 100.87 21.5182 101.709 20.5544C102.464 19.7148 103.554 19.2547 104.937 19.2547C105.943 19.2547 106.447 19.3803 107.37 19.8841L108.083 15.1455C107.16 14.7688 106.656 14.6841 105.86 14.6841C103.554 14.6827 101.877 15.7311 100.577 18.0369Z" fill="black"/><path d="M38.078 33.2714C36.0333 33.4196 33.9801 33.541 31.9254 33.6129C32.3841 33.4154 32.8131 33.1656 33.1447 32.8227C33.9659 31.9689 33.6005 30.5268 32.9245 29.539C33.1531 29.4388 33.3733 29.3273 33.5793 29.1947C34.5177 28.5921 34.6278 27.6763 34.3074 26.6292C34.2115 26.3159 34.0803 26.0013 33.9151 25.7077C34.0492 25.6344 34.1819 25.5568 34.3103 25.4735C36.3451 24.1527 35.2614 20.8026 33.2703 19.9334C31.8394 19.3083 29.964 19.7683 28.5147 20.0491C26.2343 20.4908 23.9949 21.1427 21.7794 21.8314C17.9143 23.0322 14.0986 24.3968 10.3224 25.8531C10.1009 25.9378 9.87931 26.0238 9.65776 26.1113C8.37645 26.6165 10.0867 30.5 11.4527 29.9609C14.3187 28.8306 17.2214 27.7835 20.1397 26.7971C20.721 26.601 21.3024 26.4063 21.8852 26.2158C21.7977 26.6165 21.8161 27.0836 21.9812 27.6311C22.032 27.7976 22.0927 27.9656 22.1632 28.1321C22.0207 28.1716 21.8768 28.2097 21.7342 28.2492C20.2596 28.6669 17.7675 29.158 16.9223 30.6255C16.1857 31.904 17.014 33.8246 18.0554 34.6797C18.6269 35.1496 19.3141 35.2343 20.0254 35.1849C20.659 35.1412 21.2911 35.0495 21.9219 34.9281C22.1886 35.6732 22.6825 36.3703 23.1623 36.747C23.7846 37.2367 24.6059 37.3679 25.3707 37.4568C29.607 37.9536 34.0323 37.5486 38.2755 37.2805C38.6227 37.2579 38.9698 37.2367 39.317 37.2113C40.8988 37.0984 39.4228 33.1741 38.078 33.2714Z" fill="#FFD100"/><path d="M11.1244 23.94C14.7722 22.5585 18.125 21.3943 21.3325 20.398C23.493 19.7263 25.8242 19.0419 28.2288 18.5763C28.3515 18.5523 28.4785 18.5269 28.6069 18.5015C29.503 18.3237 30.5176 18.1205 31.5633 18.1205C32.4424 18.1205 33.1974 18.263 33.8705 18.5579C34.7327 18.9347 35.4848 19.6261 36.0253 20.4728C36.6363 20.1214 37.2318 19.7433 37.8019 19.3354C37.9289 19.2437 38.0559 19.152 38.1787 19.0546C39.3739 18.0908 37.3433 14.4303 36.3837 15.2051C35.5695 15.8612 34.6734 16.437 33.7308 16.9478C33.584 16.7629 33.4246 16.5964 33.2566 16.4483C33.3286 16.358 33.3963 16.2705 33.4584 16.1914C36.1057 12.7285 36.3371 6.77917 33.2736 3.48841C32.6216 2.78849 31.7001 2.07587 30.6898 2.16477C29.606 2.2579 28.7325 3.02979 28.0411 3.81015C26.0062 6.10606 25.0311 9.31216 24.3439 12.2487C23.0104 11.8691 21.6543 11.5107 20.2784 11.3329C19.4416 11.2242 18.1349 11.0507 17.5324 11.8099C16.9284 12.5719 17.3489 13.8363 17.7088 14.5997C18.1871 15.6143 18.9887 16.3453 19.9341 16.9139C20.349 17.1637 20.7879 17.3853 21.2436 17.5842C19.4529 17.6294 17.6636 17.6957 15.8785 17.8453C14.6819 17.9455 13.4754 18.0795 12.3041 18.3476C11.5421 18.5226 10.6898 18.7583 10.1394 19.3566C9.07121 20.5152 9.92353 22.5867 10.7857 23.5985C10.8916 23.7241 11.0059 23.8355 11.1244 23.94ZM28.3501 10.3479C28.8581 9.20491 30.8887 5.30172 32.5892 6.21754C32.6033 6.23024 32.6386 6.25705 32.695 6.29798C32.6978 6.3008 32.7006 6.30362 32.7035 6.30644C32.7063 6.30927 32.7091 6.3135 32.7119 6.31632C32.7162 6.3262 32.7204 6.33608 32.726 6.34737C32.7486 6.41792 32.7698 6.48989 32.7895 6.56186C32.7952 6.59008 32.8022 6.62677 32.8121 6.67475C32.9208 7.32669 32.9405 8.19031 32.7783 9.06521C32.4241 10.9858 31.5026 12.9204 29.8346 14.0183C29.0006 13.7149 28.1624 13.4256 27.3172 13.1519C27.6093 12.1895 27.9508 11.2468 28.3501 10.3479Z" fill="#0057B7"/><path d="M9.03386 18.3388C9.83539 17.4681 10.9177 17.1252 11.9676 16.8853C13.2884 16.5819 14.622 16.445 15.7523 16.3505C15.7932 16.3477 15.8355 16.3448 15.8765 16.3406C16.0035 15.4431 15.6831 14.4102 15.3064 13.6199C14.6149 12.1749 13.4592 11.0108 12.2569 9.98063C10.3744 8.3663 8.26762 6.96504 6.14668 5.68514C5.1603 5.08823 4.95004 6.55158 5.04741 7.17812C5.22521 8.30985 5.87433 9.47121 6.86636 10.0709C7.01876 10.1627 7.16834 10.2572 7.31933 10.3504C7.49149 10.4576 7.66224 10.5663 7.83158 10.6749C7.88802 10.7116 7.94447 10.7483 8.00091 10.7836C7.94729 10.7497 8.28878 10.9713 8.34523 11.0094C9.48684 11.7685 10.6101 12.5602 11.6755 13.4224C11.7686 13.4972 11.8604 13.5734 11.9521 13.6496C11.5414 13.7032 11.0969 13.6778 10.6623 13.651C9.35278 13.5748 7.75114 13.1458 6.4783 13.6341C4.66358 14.3297 5.49192 16.922 6.22853 18.0975C6.72948 18.8976 7.42517 19.4846 8.22105 19.9305C8.34946 19.3266 8.62181 18.7861 9.03386 18.3388Z" fill="#CD001A"/><path d="M20.1301 36.6825C19.9763 36.6938 19.8267 36.6994 19.6842 36.6994C18.6653 36.6994 17.7975 36.4101 17.1032 35.8414C15.5255 34.546 14.5533 31.9227 15.5524 30.005C14.3331 30.4537 13.1548 30.9025 12.0019 31.3583C11.7395 31.4613 11.4643 31.5135 11.1835 31.5135C9.32784 31.5135 8.07616 29.3206 7.78124 27.7627C7.45244 26.0327 8.24973 25.0547 9.10629 24.7175C9.27139 24.6526 9.43791 24.5877 9.60442 24.5241C8.9934 23.7904 8.49809 22.8068 8.27796 21.8797C8.23985 21.7216 8.21163 21.565 8.18905 21.4112C6.40538 20.8891 4.65416 20.2555 2.93681 19.5062C2.27217 19.2155 1.60611 18.9163 0.964048 18.5776C0.104668 18.1232 -0.0689017 19.2776 0.0214109 19.8575C0.166758 20.7804 0.721333 21.8825 1.58071 22.3369C3.01019 23.0918 4.51587 23.7311 6.04836 24.2857C5.84798 25.0096 6.12174 25.9395 6.40538 26.5407C6.44207 26.6183 6.48299 26.6902 6.52392 26.765C6.04554 26.8031 5.56858 26.8934 5.17205 27.1093C3.82159 27.8417 4.1137 29.3926 4.93075 30.6202C4.13628 30.7247 3.23174 30.8884 2.72373 31.5798C1.74864 32.9105 2.87472 35.1006 3.92037 36.0192C4.90958 36.8885 6.3066 37.1707 7.56957 37.381C9.61853 37.7225 11.7169 37.81 13.7913 37.841C16.4512 37.8805 19.1169 37.7564 21.767 37.5009C21.513 37.2328 21.2759 36.9238 21.0685 36.5893C20.7453 36.6303 20.4349 36.6613 20.1301 36.6825Z" fill="#027223"/></svg></span>
+    <div class="brandtitle">BPO ダッシュボード</div>
+    <div class="byline"><b>AIKEN</b> BPO</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="titleblock">
+    <div class="eyebrow">PROGRESS DASHBOARD ・ いつ始まって、いま何が起きているか</div>
+    <h1>toridori × A.I.KEN　BPO 進捗ダッシュボード</h1>
+    <p><b>リスキリングキャンプ後、「AIで何ができるか」の膨大な課題（51課題）を洗い出し</b>ました。<span class="gap"></span>その多くは<b>いま使っているツール（GPT・Gemini・GAS 等）で即対応でき、すでに解決済み（対応不要・完了）</b>に。一方で<b>開発系のプロダクトは、進め方をクライアント側で決めるため「保留（方針待ち）」</b>となり、<b>その途中で優先順位の高い案件（GIVIN・Vooster・OverFlow・IS・人事領域 など）が次々と追加</b>されてきました。<span class="gap"></span>このダッシュボードは、各案件が<b>いつ始まって（KickOff）、いま誰が関わり・何がブロッカーで・次に何をするか</b>を一目で管理できるビューです。<b>各行をクリックすると編集して保存でき、議事録からの一括更新もこの画面で完結します。</b></p>
+  </div>
+
+  <!-- SAVE BAR -->
+  <div class="savebar">
+    <span class="sb-on"><span class="dot"></span>この画面で編集・保存できます</span>
+    <span class="sb-meta" id="saveStamp">未保存</span>
+    <span class="sb-meta" id="editCount">未編集</span>
+    <span class="sb-sp"></span>
+    <button class="sbtn" id="btnBackup" title="編集内容をJSONファイルに書き出し">⬇ バックアップ</button>
+    <button class="sbtn" id="btnRestore" title="バックアップJSONから復元">⬆ 復元</button>
+    <button class="sbtn" id="btnReset" title="編集をすべて消して初期状態へ">↺ リセット</button>
+    <input type="file" id="restoreFile" accept="application/json" style="display:none">
+  </div>
+
+  <!-- KPI -->
+  <section class="grid kpis">
+    <div class="kpi"><div class="num" id="kpiTotal">—</div><div class="lbl">現在の管理案件数（集約後）</div></div>
+    <div class="kpi done"><div class="num" id="kpiDone">—</div><div class="lbl">完了・運用フェーズ</div></div>
+    <div class="kpi fin"><div class="num" id="kpiFin">—</div><div class="lbl">制作・進行中</div></div>
+    <div class="kpi prog"><div class="num" id="kpiProg">—</div><div class="lbl">クライアント確認待ち</div></div>
+    <div class="kpi todo"><div class="num" id="kpiTodo">—</div><div class="lbl">保留（方針待ち）</div></div>
+  </section>
+
+  <!-- 集計の考え方（51 → 集約 → 現在） -->
+  <div class="reconcile">
+    <div class="rc-box start"><div class="n">51</div><div class="t">当初の要望項目<br>（キックオフ時）</div></div>
+    <div class="rc-op agg">－ 集約・統合 <em id="rcAgg">—</em><small>業績予測系12項目をダッシュボードに統合ほか、関連タスクをバンドル</small></div>
+    <div class="rc-op add">＋ 新規追加 <em id="rcAdd">—</em><small>4月以降のVooster・GIVIN・OverFlow・IS・人事領域 ほか</small></div>
+    <div class="rc-arrow">＝</div>
+    <div class="rc-box now"><div class="n" id="rcNow">—</div><div class="t">現在の管理案件</div></div>
+  </div>
+  <div class="rc-note">当初の <b>51項目</b>（キックオフ時の分類：開発不要10・AIツール導入8・開発必要21・業務費用対応9・要確認3）から、類似・関連する課題を<b>ダッシュボードへの統合や関連タスクのバンドル（集約）で <b id="rcAgg2">—</b> 件分を整理</b>。そこへ4月以降の新規案件を <b id="rcAdd2">—</b> 件加え、現在は <b id="rcNote">—</b> 案件として管理しています（うち完了・運用フェーズ <b id="rcDone" style="color:#059669">—</b> 件）。</div>
+
+  <!-- 経緯 MILESTONES -->
+  <h2><span class="bar"></span>これまでの経緯 — プロジェクトの歩み</h2>
+  <div class="h2sub"><b>どういう経緯があって、いまこのタスクを進行しているか</b>を時系列でまとめています。</div>
+  <div class="mstones" id="mstones"></div>
+
+  <!-- CUMULATIVE -->
+  <h2><span class="bar"></span>累積：これまでに着手し、いま何を進行しているか</h2>
+  <div class="h2sub">キックオフ（2025年12月）から着手した案件を、動き出した月で積み上げたグラフです。<b id="cumTotal" style="color:var(--green-d)">—</b> 案件に着手し、うち <b id="cumDone" style="color:#059669">—</b> 件が<b style="color:#059669">完了・運用フェーズ</b>、<b id="cumProg" style="color:var(--tori-red)">—</b> 件が<b style="color:var(--tori-red)">現在進行中</b>です。<br><span style="color:var(--soft)">初期は既存ツール（GPT/Gemini/GAS）で素早く完了、<b>4月にVooster・GIVIN・OverFlowの開発案件が一斉に加わって急増</b>。別途、方針待ちの保留が <b id="cumHold">—</b> 件あります。</span></div>
+  <div class="cum-card">
+    <div class="cum-wrap" id="cumchart"></div>
+    <div class="cum-legend">
+      <div class="it"><span class="sw" style="background:#059669"></span>完了・運用フェーズ</div>
+      <div class="it"><span class="sw" style="background:linear-gradient(180deg,#cd001a,#e63956)"></span>現在進行中</div>
+    </div>
+  </div>
+
+  <!-- CATEGORY OVERVIEW (clickable) -->
+  <h2><span class="bar"></span>事業所（利用会社）別オーバービュー</h2>
+  <div class="h2sub">toridori本体・Vooster・GIVIN・OverFlow・IS など事業所別の内訳。<b>カードをクリックすると下の一覧をその事業所に絞り込みます。</b></div>
+  <section class="grid catgrid" id="catgrid"></section>
+
+  <!-- IMPACT / PROGRESS SUMMARY -->
+  <h2><span class="bar"></span>進捗サマリー</h2>
+  <div class="h2sub">カテゴリ別の件数とステータス内訳。全体の進行状況を可視化しています。</div>
+  <section class="grid impact">
+    <div class="panel"><div class="pad">
+      <h3>カテゴリ別の件数・ステータス</h3>
+      <div id="dbars"></div>
+    </div></div>
+    <div class="panel"><div class="pad">
+      <h3>ステータス内訳</h3>
+      <div class="donut-wrap">
+        <div class="donut-c" style="width:150px;height:150px">
+          <div class="donut" id="donut"></div>
+          <div class="ctr"><span class="big" id="donutBig">—</span><span class="sm">実装・調整済</span></div>
+        </div>
+        <div class="slegend" id="slegend"></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- FULL TABLE -->
+  <h2 id="tablesec"><span class="bar"></span>案件一覧（現在の状況）</h2>
+  <div class="h2sub">キーワード検索＋<b>事業所</b>・ステータス・担当で絞り込み（複数条件はAND）。<b>各行をクリックすると編集パネルが開き、ゴール・チーム状況・関係者・スタックしている人・ブロッカー・次のアクション・最終確認日を編集して保存できます。</b></div>
+  <div class="toolbar" id="toolbar"></div>
+  <div class="finfo" id="filterInfo"></div>
+  <div class="tablecard">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:52px">開始</th>
+          <th>案件（プロジェクト）</th>
+          <th style="width:92px">事業所</th>
+          <th style="width:104px">ステータス</th>
+          <th style="width:230px">次のアクション</th>
+          <th style="width:96px">担当</th>
+          <th style="width:74px">最終確認</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- MEETING NOTES INGESTION -->
+  <h2><span class="bar"></span>議事録から進捗を更新</h2>
+  <div class="h2sub">毎週金曜15時の定例など、議事録テキストを貼り付けて「解析」を押すと、<b>該当案件を自動で拾い出し</b>、次のアクション・ブロッカー・ステータス・最終確認日の更新案を提示します。内容を確認・修正して「反映」すると、この画面に保存されます。<br><span style="color:var(--soft)">※ 案件は「No.6」「#6」のような番号、または案件名の語句（例：GIVIN、Cloudflare、業績ダッシュボード）で照合します。番号を書いておくと確実に拾えます。</span></div>
+  <div class="mtgpanel">
+    <textarea id="mtgText" placeholder="ここに議事録を貼り付け…&#10;例）No.6 GIVINモール統合DB → Amazon広告APIの審査承認、②統合ダッシュボードのモック共有済み。管理者権限付与の連絡待ちでスタック。&#10;　　業績ダッシュボード → 新方式が6月実績とほぼ一致、井上さんの確認待ち。"></textarea>
+    <div class="mtg-row">
+      <button class="sbtn red" id="mtgParse">🔎 解析する</button>
+      <button class="sbtn" id="mtgClear">クリア</button>
+      <span class="sb-meta" id="mtgInfo"></span>
+    </div>
+    <div class="mtg-result" id="mtgResult"></div>
+  </div>
+
+  <footer>
+    <img class="aiken-logo" src="data:image/png;base64,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" alt="A.I.KEN">
+    <div class="ftnote">toridori × A.I.KEN　BPO 進捗管理ダッシュボード ／ 編集内容はこの画面（ブラウザ）に保存されます</div>
+  </footer>
+</div>
+
+<!-- EDIT DRAWER -->
+<div id="drawerBack"></div>
+<aside id="drawer">
+  <div class="dk-head">
+    <button class="dk-close" id="dkClose">×</button>
+    <div class="dk-no" id="dkNo"></div>
+    <h3 id="dkName"></h3>
+    <div class="dk-meta" id="dkMeta"></div>
+  </div>
+  <div class="dk-body">
+    <div class="fld2">
+      <div class="fld"><label>ステータス</label><select id="dkSt"></select></div>
+      <div class="fld"><label>事業所・部署</label><input type="text" id="dkDept"></div>
+    </div>
+    <div class="fld"><label>🎯 ゴール（このタスクで目指す状態）</label><textarea id="dkGoal" placeholder="例）薬機法・景表法チェックをGPTで自動化し、法務確認の工数を削減"></textarea></div>
+    <div class="fld"><label>👥 チームの状況</label><textarea id="dkTeam" placeholder="例）法務とAIKENで要件すり合わせ中。現場運用テストはこれから"></textarea></div>
+    <div class="fld2">
+      <div class="fld"><label>🤝 関係者（誰が絡んでいる）</label><input type="text" id="dkInvolved" placeholder="例）杉本・井上さん・toridori"></div>
+      <div class="fld"><label>🚧 スタックしている人</label><input type="text" id="dkStuck" placeholder="例）永浦さん（CSV出力FB待ち）"></div>
+    </div>
+    <div class="fld"><label>⛔ ブロッカー（問題・止まっている理由）</label><textarea id="dkBlocker" placeholder="例）Microsoftの請求エラーでツールが一時停止。解消待ち"></textarea></div>
+    <div class="fld"><label>➡️ 次のアクション</label><textarea id="dkNext" placeholder="例）井上さんに社内/社外どちら想定か確認"></textarea></div>
+    <div class="fld"><label>🗓 最終確認日</label><input type="date" id="dkConf"></div>
+  </div>
+  <div class="dk-foot">
+    <button class="sbtn red" id="dkSave">💾 保存</button>
+    <button class="todaybtn" id="dkToday">最終確認日を今日に</button>
+    <span class="sb-meta" id="dkHint" style="margin-left:auto"></span>
+  </div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   STATUS / 事業所 定義（2026-07-03 時点の実データ）
+   ========================================================= */
+const STATUS = {
+  "完了":{color:"#027223"}, "最終調整中":{color:"#7c3aed"}, "制作・分析中":{color:"#0057b7"},
+  "進行中":{color:"#2563eb"}, "ヒアリング中":{color:"#0891b2"}, "確認待ち":{color:"#d99e00"},
+  "保留":{color:"#64748b"}, "対応不要":{color:"#94a3b8"}, "クローズ":{color:"#a16207"},
+};
+const STORDER=["完了","最終調整中","制作・分析中","進行中","ヒアリング中","確認待ち","保留","対応不要","クローズ"];
+
+const CATS = {
+  "toridori":"#cd001a",
+  "Vooster":"#0057b7",
+  "OverFlow":"#b8860b",
+  "GIVIN":"#027223",
+  "IS":"#7c3aed",
+  "初期対応（完了）":"#059669",
+  "プロダクト開発":"#64748b",
+};
+const CATORDER=Object.keys(CATS); // 事業所（利用会社）＝件数の多い順
+
+const MONTHS=[["1","2026年1月"],["2","2月"],["3","3月"],["4","4月"],["5","5月"],["6","6月"],["7","7月"]];
+
+const MILESTONES=[
+  {d:"2025/12/24",t:"キックオフ",b:"「ひときわ（外国人採用のAI導入）」の成功事例をベースに実装支援を開始。トリドリから挙がった<b>51項目</b>の業務自動化要望に、<b>6ヶ月で段階的に対応</b>する方針。「まず80%の自動化で運用を開始し、改善していく」スピード感を重視。定例は毎週金曜15時。"},
+  {d:"2025/12〜1月",t:"51項目を分類",b:"要望を <b>開発不要 10件</b>／<b>AIツール導入 8件</b>（Gemini等）／<b>開発必要 21件</b>（メイン開発）／業務費用対応 9件（人的対応）／要確認 3件 に整理。"},
+  {d:"1〜3月",t:"既存ツールで即対応（クイックウィン）",b:"契約書自動レビュー（矢野氏が約90%自動化）・薬機法/景表法チェック・日程調整・Googleドライブ検索・既存Gems最適化 などを GPT/Gemini/GAS で対応し、<b>完了・運用フェーズ</b>へ。バックオフィスBotも構築。"},
+  {d:"3/30",t:"タスクの再編（統合・絞り込み・格上げ）",b:"営業リマインド等を<b>「非対応（実施しない）」</b>に整理。似た課題を<b>統合</b>（業績ダッシュボードに12件、Slack監視に評価系、GIVIN各機能を統合DBへ）。反社チェックは精度ほぼ100%で4月から運用開始。<b>「100人提案生成AI」「営業リード獲得ツール」を優先度〈高〉に格上げ</b>。"},
+  {d:"4月",t:"開発案件が一斉にKickOff",b:"<b>Vooster</b>（BDR架電/SEO/フォーム営業/WP ほか）・<b>GIVIN</b>（モール統合DB ①〜⑩）・<b>OverFlow</b>（投稿分析・営業管理）・<b>IS</b>（電話商談ログ分析）が本格始動。案件数が急増。"},
+  {d:"5月〜6月",t:"高優先度の新規案件を追加",b:"<b>人事領域見直し</b>（オンボーディング/AI面接ほか4テーマ）・<b>クレーム集計自動化</b>・代理店報酬集計・キャンペーンコンプラチェック・文字起こし精度向上 などを追加。"},
+  {d:"現在 (7/3)",t:"累積の案件を並行進行中",b:"既存ツールで解決したものは<b>完了・運用フェーズ</b>へ、開発が必要なものは<b>クライアントと進め方を決めながら</b>推進。方針待ちのプロダクト案件は<b>保留</b>として整理。毎週金曜15時の定例で更新しています。",now:true},
+];
+
+/* =========================================================
+   DATA（Notion「2026年7月3日 進捗管理表」＋「進捗タスク管理」準拠）
+   no=表示番号 / cat=利用会社(事業所) / ko=KickOff日 / st=ステータス /
+   owner=担当 / goal=ゴール / team=今のチーム状況 / blocker=ブロッカー / next=ネクストアクション / pri=優先度
+   ========================================================= */
+const T = [
+  {no:1,cat:"toridori",ko:"1/9",koM:1,name:"業績ダッシュボード（経営管理データ統合）",st:"最終調整中",owner:["青木"],pri:"高",goal:"分散した経営管理データを自動統合し、リアルタイムモニタリングとAI予測による迅速な意思決定を実現する",team:"6月実績での答え合わせで青木さんの新推測ロジックがほぼ的中。従来方式とのズレ比較で高精度を確認、井上さんと共有済み。スプレッドシートのメタベース再現も完成（見た目も米永さん確認OK）。",blocker:"3月以前の過去データは運用変更で参考価値が低い可能性／検証データ不足（2ヶ月分）",next:"新旧方式を当面「並走」運用。見込みの手入力（約75%精度）は最小限に残し新方式で出力。予測精度の扱いを井上さん経由で青木さんへ回答依頼。"},
+  {no:2,cat:"OverFlow",ko:"2/12",koM:2,name:"【OverFlow】営業管理ツール（予実管理）",st:"制作・分析中",owner:["西野","中川"],pri:"高",goal:"進行中案件を見える化し、属人的な営業・案件管理をAI/ダッシュボードで仕組み化（誰でも状態が分かる管理基盤）",team:"中山さんと合意し、OverFlow全体をプロジェクト管理ツールへ集約する方針。利用PJ数を拡大し、スプシの予実管理・顧客向けスケジュール表示も取り込む方向。現在こちらボール持ち。",blocker:"",next:"1〜2週間で管理ツールを構築し共有。中山さん・五十嵐さん・松山さんと直接連携し、進捗はNotionに集約。"},
+  {no:3,cat:"IS",ko:"3/5",koM:3,name:"【IS】電話商談ログ分析・フロー改善",st:"進行中",owner:["中川"],pri:"高",goal:"IS電話商談ログを分析して業務を標準化し、再現性の高いオペレーションを構築",team:"阿部さん（現場責任者）と打ち合わせ→FB反映版を提出。来週月曜に再打ち合わせ予定であと2〜3回のリレーを想定。トークマニュアルへ画面遷移等のビジュアル資料追加の要望あり。",blocker:"",next:"阿部さんとのリレーを継続（期限を明確化）。ビジュアル資料を中川さんが整備。録音データから①トークマニュアル②差し戻し分析③FAQを先行作成。"},
+  {no:4,cat:"OverFlow",ko:"4/6",koM:4,name:"OFエンプラ向け：投稿履歴＆分析管理画面",st:"制作・分析中",owner:["井内航","杉本"],pri:"高",goal:"商談・架電中にAIがリアルタイムで営業サジェストを提示し、対応品質の標準化と営業成果の向上を実現",team:"インサイト分析＋タレント提案ツールが完成しマニュアル共有。X（Apify経由）で投稿取得→属性推定→訴求ポイント算出→合致タレント抽出の流れを実装。Instagram/TikTokはApifyでは同等取得が困難。",blocker:"",next:"残る改善点を来週まで対応。取得データはDB化してストック。Instagram/TikTokは西野さん調査のツールを参照し取得手段を検討。"},
+  {no:5,cat:"toridori",ko:"4/6",koM:4,name:"AI営業補助ツール（事後FB/リアルタイム支援）",st:"進行中",owner:["青木"],pri:"高",goal:"商談・架電中にAIがリアルタイムで営業サジェストを提示し、対応品質の標準化と成果向上を実現",team:"リアルタイム支援より、MTG後に角度の高い振り返りを届ける「事後アドバイス機能」に注力して開発中。国本さんも事後FBの蓄積が精度向上につながると評価。Mac版はリリース完了・DLリンク発行済。",blocker:"",next:"来週定例でデモを実施予定。事後FB（振り返り）機能を優先して作成・蓄積。林氏の検証環境をサポート。"},
+  {no:6,cat:"GIVIN",ko:"4/7",koM:4,name:"【GIVIN】モール統合DB（①〜⑩）",st:"進行中",owner:["中川","対馬"],pri:"高",goal:"楽天・Amazon等の売上・広告データをAPI連携で自動取得・可視化し、毎日の手作業集計を廃止する",team:"アカウント発行→井上さん連携。二要素認証を1on1で解除し閲覧可能に。Google広告は申請通過、TikTok・Amazon等の広告API申請は審査中。②統合ダッシュボードはモック共有（Amazon待ち）。③⑦⑧⑨⑩はヒアリング中。",blocker:"⚠ 上司側での管理者権限付与の完了報告待ち／各広告APIの審査・申請が手作業中心",next:"管理者権限付与の完了連絡を待ちつつ、TikTok/Amazon広告のAPI審査承認に向け先方とやり取り継続。必要書類を一覧化しオレンダ側から回収。"},
+  {no:7,cat:"toridori",ko:"4/9",koM:4,name:"Cloudflare／ユーザー管理（基盤移行）",st:"進行中",owner:["西野"],pri:"高",goal:"マルチテナント化＋Googleアカウントログインの基盤を、toridori管理のCloudflareアカウントへ移行",team:"マルチテナント化＋Googleログイン実装済み。北野さんからCloudflare移行はOK。嶋田さんと連携しtoridori管理のCloudflareアカウント作成へ。",blocker:"デプロイ先Cloudflareの判断待ち",next:"嶋田さんが北野さんへ連絡（返信滞り→改めて連絡し進行中）。方針決定を仰ぐ聞き方に調整。toridori管理アカウントでのCloudflare作成を進める。"},
+  {no:8,cat:"toridori",ko:"4/9",koM:4,name:"IT監査（ログ収集自動化）",st:"進行中",owner:["西野"],pri:"その他",goal:"IT監査に必要な各種ログ収集を自動化し、監査対応工数を大幅に削減する",team:"嶋田さんから北野さんへFB依頼済み。ただし前回確認時点で先方はまだ未利用。6月末〜7月頃に利用開始→その後FBの回答見込み。",blocker:"ボールはtoridori側（利用開始・FB待ち）。次工程の追加作業が進められない状態。",next:"利用開始・FBを嶋田さんがプッシュ（聞き方を調整して再依頼）。FB受領後に構築完了クローズの確認。"},
+  {no:9,cat:"Vooster",ko:"4/9",koM:4,name:"【Vooster】BDR AI架電",st:"確認待ち",owner:["西野"],pri:"高",goal:"アポ獲得数を最大化（現状：月150件のアポ獲得に6人月のコール人員が必要）",team:"先週から進捗変化なし。Vooster系はCloudflareで運用中。",blocker:"toridoriのClaude Code運用方針MTG待ち",next:"「toridori管理アカウントへの移行」に向け、北野さんへの連絡は嶋田さんが実施。運用方針の決定待ち。"},
+  {no:10,cat:"Vooster",ko:"4/9",koM:4,name:"【Vooster】ホワイトペーパー作成",st:"確認待ち",owner:["西野"],pri:"その他",goal:"骨子作成後のビジュアル化を効率化し、月5本のWP公開を安定運用",team:"先週から進捗変化なし。Vooster系はCloudflareで運用中。",blocker:"toridoriのClaude Code運用方針MTG待ち",next:"「toridori管理アカウントへの移行」に向け嶋田さんが北野さんへ連絡。"},
+  {no:11,cat:"Vooster",ko:"4/9",koM:4,name:"【Vooster】SEO記事作成",st:"確認待ち",owner:["西野"],pri:"その他",goal:"月10本のSEO記事を品質を担保しながら安定公開",team:"先週から進捗変化なし。Vooster系はCloudflareで運用中。",blocker:"toridoriのClaude Code運用方針MTG待ち",next:"運用方針の決定待ち（同上）。"},
+  {no:12,cat:"Vooster",ko:"4/9",koM:4,name:"【Vooster】BDRリスト自動生成",st:"確認待ち",owner:["西野"],pri:"その他",goal:"月間20,000の新規リストを自動生成",team:"先週から進捗変化なし。Vooster系はCloudflareで運用中。",blocker:"toridoriのClaude Code運用方針MTG待ち",next:"運用方針の決定待ち（同上）。"},
+  {no:13,cat:"Vooster",ko:"4/9",koM:4,name:"【Vooster】フォーム営業自動化",st:"確認待ち",owner:["西野"],pri:"その他",goal:"フォーム送信自動化で工数・コストをかけないリード獲得（現状アポろうくん月5万/送信成功率20%前後）",team:"先週から進捗変化なし。Vooster系はCloudflareで運用中。",blocker:"toridoriのClaude Code運用方針MTG待ち",next:"運用方針の決定待ち（同上）。"},
+  {no:14,cat:"Vooster",ko:"4/9",koM:4,name:"【Vooster】架電データ分析",st:"確認待ち",owner:["西野"],pri:"その他",goal:"架電音声をAIで分析し「顧客が他に何を求めているか（アップセルの種）」を提案先へFB",team:"先週から進捗変化なし。Vooster系はCloudflareで運用中。",blocker:"toridoriのClaude Code運用方針MTG待ち",next:"運用方針の決定待ち（同上）。"},
+  {no:15,cat:"Vooster",ko:"4/9",koM:4,name:"【Vooster】クリエイティブ分析",st:"確認待ち",owner:["西野"],pri:"その他",goal:"広告配信データをAIで定量分析・資産化し、成果につながる改善の再現性を高める",team:"先週から進捗変化なし。Vooster系はCloudflareで運用中。",blocker:"toridoriのClaude Code運用方針MTG待ち",next:"運用方針の決定待ち（同上）。"},
+  {no:16,cat:"Vooster",ko:"4/9",koM:4,name:"【Vooster】事例打診自動化",st:"確認待ち",owner:["西野"],pri:"その他",goal:"Vooster利用顧客への導入事例・掲載の打診業務をトリガーベースで完全自動化",team:"先週から進捗変化なし。Vooster系はCloudflareで運用中。",blocker:"toridoriのClaude Code運用方針MTG待ち",next:"運用方針の決定待ち（同上）。"},
+  {no:17,cat:"toridori",ko:"5/15",koM:5,name:"人事領域見直し（4テーマ）",st:"ヒアリング中",owner:["青木","川上","杉本","小森"],pri:"高",goal:"①オンボーディング最適化 ②隠れた貢献度人材発掘 ③AI入社後1on1 ④AI面接ベンダー調査",team:"【人事評価】一旦保留（周知・プライバシーポリシー整備が前提）。【オンボーディング】マニュアル完成、AI活用提案資料を作成。【AI面接】小森さん主導で候補5社の商談完了、比較レポートを共有。ピープルXが有力だが高額（初年度約400万）。",blocker:"人事評価：個人情報・プライバシーポリシー・社内周知の整備（要法務確認）／AI面接：ピープルXのコスト",next:"【人事評価】ルール設計をリーガルチェック込みで検討、簡易版から着手。【オンボーディング】来週AI活用提案。【AI面接】来週月曜に採用チームとMTGしデモ先選定。"},
+  {no:18,cat:"toridori",ko:"5/22",koM:5,name:"文字起こし精度向上／議事録自動化",st:"進行中",owner:["青木"],pri:"その他",goal:"競合AIツール調査と実運用検討を踏まえ、辞書登録や発話ルール整備で文字起こし・音声認識の精度を向上",team:"議事録自動補正の仕組みを構築完了。本定例でTeamsファシリテーター機能を初有効化し実演（自動まとめ・タスク自動生成/割当・Loopアーカイブ）。国本さんも有用と評価。※toridoriはTeams未使用（Google/Meet中心）。",blocker:"Microsoftログイン部分／読み込ませ情報の精度調整",next:"議事録からタスク（担当・期限）抽出→案件管理ダッシュボード連携を推進。リアルタイム営業支援の精度調整、商談分析・事後FBエージェントを早期作成。"},
+  {no:19,cat:"toridori",ko:"5/22",koM:5,name:"クレーム・要望・問い合わせ集計の自動化",st:"完了",owner:["西野","中川"],pri:"その他",goal:"LINEで届くクレーム情報をリアルタイムに集計・可視化し、件数・対応状況・進捗を即時確認できる状態を構築",team:"クレーム対応ツールはデプロイ済み。マーケ用リストとは別枠（一部重複あり）。Voosterのダッシュボードに追加。",blocker:"嶋田さんからのユーザーリスト共有待ち",next:"ツール利用者のユーザー招待。嶋田さんが対象者リストを西野さんへ共有。"},
+  {no:20,cat:"toridori",ko:"初期",koM:1,name:"バックオフィスBot（オフィスBot）",st:"完了",owner:["杉本","川上"],pri:"その他",goal:"社内問い合わせ対応Bot（経理・労務・採用・法務）",team:"6/23にバージョンアップし、実利用テストで正答率50%→100%に到達し精度が大幅向上。オンボーディングマニュアルにもBotで回答可能。営業系はマニュアル・データを入れれば回答可能（社内ポータル未投入）。",blocker:"",next:"営業系のマニュアル・データも取り込み回答範囲を拡大（“何でも聞けば答える”状態へ段階的に精度向上）。来月に当月分データをまとめて報告。"},
+  {no:21,cat:"toridori",ko:"初期",koM:2,name:"広告ガイドラインの自動チェックツール",st:"制作・分析中",owner:["杉本"],pri:"その他",goal:"広告ガイドラインに沿ったチェックを自動化",team:"継続改善中。4月分400件のテストで分類・区分は概ね合致だが再現率（見逃し）が目標80%に未達。RAG追加で精度を詰めて完成を目指す段階。",blocker:"",next:"月末に来る新データを読み込んでバージョンアップ（7月実用目標）。"},
+  {no:22,cat:"toridori",ko:"初期",koM:2,name:"反社チェック自動化",st:"完了",owner:["杉本"],pri:"その他",goal:"反社チェックを自動化",team:"法務担当の浜島さんと協議のうえ、ブースター版等に加えフォーマットを拡充する方針。来月実用に向け準備中。",blocker:"",next:"フォーマットをあと3種類追加し、7月から実用開始。"},
+  {no:23,cat:"toridori",ko:"初期",koM:3,name:"業界最新情報・トレンド自動キャッチアップBot",st:"確認待ち",owner:["杉本"],pri:"その他",goal:"各事業部向けの業界トレンド情報を自動収集・配信",team:"Bot自体は問題なく稼働中。GIVIN（金子さん）はFB未取得、OverFlow（五十嵐さん）も返信なし。",blocker:"GIVIN・OverFlow双方からのFB未取得",next:"一旦ストップ（井上さん了承済み）。"},
+  {no:24,cat:"GIVIN",ko:"5/15",koM:5,name:"【GIVIN】マーケティングデータ集約",st:"完了",owner:["井内航","杉本"],pri:"その他",goal:"TikTok投稿再生数のデイリー追跡、各広告データ（Amazon・自社EC・卸等）の集約・可視化",team:"GIVINモール統合DBに統合。",blocker:"",next:"モール統合DB（No.6）に統合。"},
+  {no:25,cat:"OverFlow",ko:"2/12",koM:2,name:"SNS上の自社他社分析（ソーシャルリスニング）",st:"完了",owner:["西野","杉本"],pri:"その他",goal:"ソーシャルリスニングツールをLLM+APIで安価に構築（月額1000円未満目標）",team:"西野がヒアリング完了。API で安価に作る提案を送付済み。",blocker:"",next:"一旦クローズ。三宮さん側でApify等を使い自前で模索する方針となったため。"},
+  {no:26,cat:"OverFlow",ko:"5/22",koM:5,name:"新規HBL眉毛診断コンテンツ開発（BPO対象外）",st:"完了",owner:["西野"],pri:"高",goal:"①顔写真からHBL施術後イメージ確認 ②MBTI的診断コンテンツ（HBL側に1000件以上の事例写真＋眉毛分類データ）",team:"OF代表・町山さんからの新規依頼。クライアントHBL（眉毛ケア事業）向け診断コンテンツ。",blocker:"",next:"別プロジェクトとして管理（BPO対象外）。"},
+  // ── プロダクト開発（保留：進め方をクライアント側で決定するため方針待ち） ──
+  {no:27,cat:"プロダクト開発",ko:"—",koM:null,name:"Slack情報の自動収集（スタック監視）",st:"保留",owner:["西野"],pri:"その他",goal:"Slackの情報を自動収集し、業務スタック（滞留）を監視する",team:"開発系プロダクト。進め方をクライアント側で決めるため方針待ち。",blocker:"優先着手／要調整／保留の判断まち（クライアント側の意思決定）",next:"プロダクト案件のため、優先着手/要調整/保留の判断まち。"},
+  {no:28,cat:"プロダクト開発",ko:"—",koM:null,name:"キャンペーン審査業務の自動化",st:"保留",owner:["西野","青木","井内航"],pri:"高",goal:"キャンペーン審査業務をAIで自動化し、審査工数を削減",team:"開発系プロダクト。staff改修待ち。",blocker:"staff改修待ち／優先着手・要調整・保留の判断まち",next:"プロダクト案件のため、優先着手/要調整/保留の判断まち。"},
+  {no:29,cat:"プロダクト開発",ko:"—",koM:null,name:"FAQ自動更新（履歴ベース）",st:"保留",owner:["西野","青木","井内航"],pri:"高",goal:"問い合わせ履歴をもとにFAQを自動更新",team:"開発系プロダクト。staff改修待ち。",blocker:"staff改修待ち／優先着手・要調整・保留の判断まち",next:"プロダクト案件のため、優先着手/要調整/保留の判断まち。"},
+  {no:30,cat:"プロダクト開発",ko:"—",koM:null,name:"問い合わせ対応ドラフト生成（高度パーソナライズ）",st:"保留",owner:[],pri:"その他",goal:"問い合わせに対する返信ドラフトを高度にパーソナライズして自動生成",team:"開発系プロダクト。staff改修待ち。",blocker:"staff改修待ち／優先着手・要調整・保留の判断まち",next:"プロダクト案件のため、優先着手/要調整/保留の判断まち。"},
+  {no:31,cat:"プロダクト開発",ko:"—",koM:null,name:"QAスコアリングの自動化・対応品質の均一化",st:"保留",owner:["小森"],pri:"その他",goal:"問い合わせ対応のQAスコアリングを自動化し、対応品質を均一化",team:"開発系プロダクト。staff改修待ち。",blocker:"staff改修待ち／優先着手・要調整・保留の判断まち",next:"プロダクト案件のため、優先着手/要調整/保留の判断まち。"},
+  {no:32,cat:"プロダクト開発",ko:"—",koM:null,name:"Zohoを基軸としたデータ一気通貫ダッシュボード",st:"保留",owner:["小森"],pri:"その他",goal:"Zohoを基軸に各種データを一気通貫で可視化するダッシュボード",team:"開発系プロダクト。方針待ち。",blocker:"優先着手・要調整・保留の判断まち",next:"プロダクト案件のため、優先着手/要調整/保留の判断まち。"},
+  {no:33,cat:"プロダクト開発",ko:"—",koM:null,name:"提案資料／オリエン資料・IFリストアップの自動化",st:"保留",owner:["西野","青木","井内航","杉本"],pri:"その他",goal:"提案資料の自動アップデート・オリエン資料自動作成・インフルエンサーリストアップ自動化",team:"開発系プロダクト（トリドリチーム）。方針待ち。",blocker:"優先着手・要調整・保留の判断まち",next:"プロダクト案件のため、優先着手/要調整/保留の判断まち。"},
+  // ── 初期51課題：既存ツール／現場運用／統合・非対応整理で対応済み（完了・運用フェーズ） ──
+  {no:34,cat:"初期対応（完了）",ko:"1月",koM:1,name:"契約書自動レビュー（確認・作成含む）",st:"完了",owner:["青木くみこ","矢野"],pri:"その他",goal:"契約書のレビュー・作成をAIで自動化",team:"矢野氏が実施し約90%を自動化。運用中。",blocker:"",next:"納品済・運用フェーズ。"},
+  {no:35,cat:"初期対応（完了）",ko:"1月",koM:1,name:"薬機法・景表法チェック（GPTツール群）",st:"完了",owner:["杉本"],pri:"その他",goal:"広告主商材・IF投稿の薬機法/景表法チェックを自動化",team:"広告主商材向け／IF投稿向けのGPTチェックツールを提供・運用中（No.1〜3）。",blocker:"",next:"ツール提供済み。広告主商材URLで検証を継続。"},
+  {no:36,cat:"初期対応（完了）",ko:"1月",koM:1,name:"日程調整・社内申請の自動化",st:"完了",owner:["杉本","青木"],pri:"その他",goal:"複数人/会議室対応の日程調整、勤怠・経費等の社内申請を自動化",team:"日程調整は完了。社内申請はバックオフィスBotに統合。",blocker:"",next:"納品済・運用フェーズ。"},
+  {no:37,cat:"初期対応（完了）",ko:"1月",koM:1,name:"Googleドライブ過去情報の検索強化",st:"完了",owner:[],pri:"その他",goal:"社内の過去情報をすぐ引ける検索環境",team:"Gemini＠googleドライブで解決（開発不要）。",blocker:"",next:"既存ツールで対応済み。"},
+  {no:38,cat:"初期対応（完了）",ko:"1月",koM:1,name:"既存Gems（プロンプト）の確認・最適化",st:"完了",owner:["小森"],pri:"その他",goal:"社内で使うGems（プロンプト）を最適化",team:"納品済。",blocker:"",next:"納品済。"},
+  {no:39,cat:"初期対応（完了）",ko:"2月",koM:2,name:"採用・評価系（面接項目生成・書類審査・行動解析ほか）",st:"完了",owner:["小森"],pri:"その他",goal:"面接ヒアリング項目生成・書類審査・Slack行動解析・エンゲージメント分析",team:"既存AI/All-in-one Workspaceで対応、Slack監視(No.27)に統合。個別開発は不要と整理（No.14/16/17/18/19）。",blocker:"",next:"既存ツール・統合で対応済み。人事評価は人事領域見直し(No.17)で再検討。"},
+  {no:40,cat:"初期対応（完了）",ko:"3月",koM:3,name:"討論AIツール",st:"完了",owner:["中川"],pri:"その他",goal:"社内の意思決定を助ける討論AI",team:"完了。coWorkでの活用に変更。",blocker:"",next:"coWork活用へ。"},
+  {no:41,cat:"初期対応（完了）",ko:"4月",koM:4,name:"営業リード獲得ツール（オートコール／フォーム営業）",st:"完了",owner:["西野"],pri:"高",goal:"BDR用リストの自動生成・リード獲得（No.51と関連）",team:"プロダクトとして完成。",blocker:"",next:"完了。"},
+  {no:42,cat:"初期対応（完了）",ko:"4月",koM:4,name:"InstagramメッセージングAPI（DM）",st:"完了",owner:[],pri:"その他",goal:"Instagramの自動DM連携を検証",team:"DM受信後の返信は可、任意ユーザーへの新規DM送信は不可、という仕様を確認し完了。",blocker:"",next:"仕様確認完了。"},
+  {no:43,cat:"初期対応（完了）",ko:"4月",koM:4,name:"インフルエンサー・リクルーティング／クロージング系（開発チームへ移管）",st:"完了",owner:["中川","対馬"],pri:"高",goal:"フィルター設計・急成長アカウント検知・DM管理・クロージングスクリプト・ISトークスクリプト",team:"組織統合（niks/overflow/toridoribase）に伴い開発チーム担当へ移管し着手済み（No.45系/47/48）。",blocker:"",next:"ネット開発チームで着手済み。"},
+  {no:44,cat:"初期対応（完了）",ko:"3月",koM:3,name:"100人提案生成AI・スコアリングAI（対応済み）",st:"完了",owner:["杉本","青木","井内航"],pri:"その他",goal:"インフルエンサー100人分の提案生成・サービス/商品のスコアリング",team:"No.38（OFエンプラ投稿分析）の成果物をベースに対応。個別開発は不要と整理（No.46/49）。",blocker:"",next:"38成果物ベースで対応済み。"},
+  {no:45,cat:"初期対応（完了）",ko:"3月",koM:3,name:"非対応に整理した項目（3/30再編）",st:"完了",owner:[],pri:"その他",goal:"クライアントリサーチ・SNS自動リクルーティング・FS動画自動作成・営業リマインド 等",team:"3/30の再編で「非対応（実施しない）」に整理。既存運用で充足、またはやらない判断（No.43/44/50/追加課題3）。",blocker:"",next:"実施しない（対応不要）と整理済み。"},
+  {no:46,cat:"初期対応（完了）",ko:"4月",koM:4,name:"GIVIN 広告レコメンド⑥・クリエイティブ分析⑤（対応済み）",st:"完了",owner:["中川","対馬"],pri:"高",goal:"GIVINの広告レコメンド/クリエイティブ自動生成・クリエイティブ分析",team:"広告レコメンドはGPTで対応済み、クリエイティブ分析は西田さんスプシ作成済み。",blocker:"",next:"既存ツール・スプシで対応済み。"},
+];
+
+
+
+/* ============================================================
+   状態管理：seed(T) ＋ ローカル保存(store)。この画面で編集・保存できる
+   ============================================================ */
+const SKEY="toridori_bpo_state_v1";
+T.forEach(t=>{ t.id=(t.no==null?"x0":"n"+t.no); });
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
+function seed(t){return {st:t.st, dept:t.cat||"—", goal:t.goal||"", team:t.team||"", involved:(t.owner||[]).join("・"), stuck:"", blocker:t.blocker||"", next:t.next||"", conf:""};}
+let store={};
+try{store=JSON.parse(localStorage.getItem(SKEY)||"{}")||{};}catch(e){store={};}
+function cur(t){return Object.assign(seed(t), store[t.id]||{});}
+function persist(){localStorage.setItem(SKEY,JSON.stringify(store));markSaved();}
+function fmtDate(d){const z=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());}
+function markSaved(){
+  const n=Object.keys(store).filter(k=>store[k]&&Object.keys(store[k]).length).length;
+  const ss=document.getElementById("saveStamp"); if(ss)ss.textContent=n?("最終保存 "+fmtDate(new Date())+" "+new Date().toTimeString().slice(0,5)):"未保存（初期状態）";
+  const ec=document.getElementById("editCount"); if(ec)ec.textContent=n?("編集 "+n+"件"):"未編集";
+}
+let toastT=null;
+function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),2200);}
+
+const stOf=t=>cur(t).st;
+const cnt=s=>T.filter(t=>stOf(t)===s).length;
+const BIZCOL={"niks":"#cd001a","OF":"#0057b7","made":"#027223","blends":"#b8860b"};
+function depChip(d){const col=BIZCOL[d]||"#64748b";return `<span class="dom" style="background:${col}14;color:${col}"><span class="pc" style="background:${col}"></span>${esc(d)}</span>`;}
+function catChip(c){const col=CATS[c];return `<span class="dom" style="background:${col}14;color:${col}"><span class="pc" style="background:${col}"></span>${c}</span>`;}
+
+/* ---- 集計・カード・ドーナツ ---- */
+function renderSummary(){
+  const impl=cnt("最終調整中")+cnt("制作・分析中")+cnt("進行中");
+  const wait=cnt("確認待ち")+cnt("ヒアリング中");
+  document.getElementById("kpiTotal").textContent=T.length;
+  document.getElementById("kpiDone").textContent=cnt("完了");
+  document.getElementById("kpiFin").textContent=impl;
+  document.getElementById("kpiProg").textContent=wait;
+  document.getElementById("kpiTodo").textContent=cnt("保留");
+  document.getElementById("donutBig").textContent=cnt("完了")+impl;
+  const AGG=17; // 当初51項目のうち、ダッシュボード統合・バンドルで他案件に集約・吸収した数（＝業績予測系12→1 ほか）
+  const add=T.length-(51-AGG); // 新規追加＝現在の管理数 －（51 － 集約）。常に 51 － AGG ＋ add ＝ 現在 で辻褄が合う
+  document.getElementById("rcAgg").textContent="△"+AGG;
+  document.getElementById("rcAdd").textContent="＋"+add;
+  document.getElementById("rcAgg2").textContent=AGG;
+  document.getElementById("rcAdd2").textContent=add;
+  document.getElementById("rcNow").textContent=T.length;
+  document.getElementById("rcNote").textContent=T.length;
+  document.getElementById("rcDone").textContent=cnt("完了");
+  const catData=CATORDER.map(c=>({c,items:T.filter(t=>t.cat===c)}));
+  document.getElementById("catgrid").innerHTML=catData.map(({c,items})=>{
+    const col=CATS[c];
+    const seg=STORDER.map(s=>{const n=items.filter(t=>stOf(t)===s).length;return n?`<i style="flex:${n};background:${STATUS[s].color}"></i>`:"";}).join("");
+    const done=items.filter(t=>["完了","最終調整中"].includes(stOf(t))).length, prog=items.filter(t=>stOf(t)==="進行中").length;
+    return `<div class="catcard" style="border-left-color:${col}" onclick="jump('${c}')"><div class="ch"><span class="cname">${c}</span><span class="ccnt" style="color:${col}">${items.length}</span></div><div class="ctrack">${seg}</div><div class="cmeta"><span>完了・調整 <b>${done}</b></span><span>進行中 <b>${prog}</b></span></div></div>`;
+  }).join("");
+  const domSorted=catData.slice().sort((a,b)=>b.items.length-a.items.length);
+  const maxDom=Math.max(...domSorted.map(x=>x.items.length));
+  document.getElementById("dbars").innerHTML=domSorted.map(({c,items})=>{
+    const seg=STORDER.map(s=>{const n=items.filter(t=>stOf(t)===s).length;return n?`<i style="flex:${n};background:${STATUS[s].color}"></i>`:"";}).join("");
+    return `<div class="dbar"><span class="nm">${c}</span><span class="track" style="max-width:${(items.length/maxDom*100).toFixed(0)}%">${seg}</span><span class="cnt">${items.length}</span></div>`;
+  }).join("");
+  const total=T.length; let acc=0; const stops=[];
+  STORDER.forEach(s=>{const c=cnt(s);if(!c)return;const from=acc/total*360,to=(acc+c)/total*360;acc+=c;stops.push(`${STATUS[s].color} ${from}deg ${to}deg`);});
+  const donut=document.getElementById("donut");
+  donut.style.background=`conic-gradient(${stops.join(",")})`;
+  donut.style.webkitMask=donut.style.mask="radial-gradient(circle, transparent 52%, #000 53%)";
+  document.getElementById("slegend").innerHTML=STORDER.map(s=>{const c=cnt(s);if(!c)return "";return `<div class="it"><span class="sw" style="background:${STATUS[s].color}"></span>${s} <b>${c}件</b> <span style="color:var(--soft)">(${Math.round(c/total*100)}%)</span></div>`;}).join("");
+}
+
+/* ---- フィルタ・検索 ---- */
+const ALLCATS=CATORDER;
+const ALLOWNERS=[...new Set(T.flatMap(t=>t.owner||[]))];
+const STORDER2=STORDER;
+const PROGRESS=["最終調整中","制作・分析中","進行中","ヒアリング中","確認待ち"]; // 現在進行中（完了・保留・クローズを除く）
+let fCat="", fStatus="", fOwner="", fQ="", fLive=false;
+const tb=document.getElementById("toolbar");
+tb.innerHTML =
+  `<div class="searchwrap"><span class="si">🔎</span><input id="searchBox" placeholder="キーワード検索（案件名・事業所・担当・ブロッカー…）"></div>`+
+  `<span class="chip live" data-live="1">▶ 現在進行中</span>`+
+  `<span class="chip active" data-cat="">すべての事業所</span>`+
+  ALLCATS.map(c=>`<span class="chip" data-cat="${c}">${c}</span>`).join("")+
+  `<select class="fsel" id="selStatus"><option value="">ステータス：すべて</option>${STORDER2.map(s=>`<option value="${s}">${s}</option>`).join("")}</select>`+
+  `<select class="fsel" id="selOwner"><option value="">担当：すべて</option>${ALLOWNERS.map(o=>`<option value="${o}">${o}</option>`).join("")}</select>`;
+tb.addEventListener("click",e=>{const c=e.target.closest(".chip");if(!c)return;if(c.dataset.live!==undefined){fLive=!fLive;}else{fCat=c.dataset.cat;}syncUI();render();});
+document.getElementById("searchBox").addEventListener("input",e=>{fQ=e.target.value.trim();render();});
+document.getElementById("selStatus").addEventListener("change",e=>{fStatus=e.target.value;render();});
+document.getElementById("selOwner").addEventListener("change",e=>{fOwner=e.target.value;render();});
+function clearAll(){fCat="";fStatus="";fOwner="";fLive=false;}
+function syncUI(){
+  tb.querySelectorAll(".chip[data-cat]").forEach(c=>c.classList.toggle("active", c.dataset.cat===fCat));
+  const lc=tb.querySelector(".chip[data-live]"); if(lc)lc.classList.toggle("active",fLive);
+  document.getElementById("selStatus").value=fStatus;
+  document.getElementById("selOwner").value=fOwner;
+}
+function jump(cat){clearAll();fCat=cat;syncUI();render();document.getElementById("tablesec").scrollIntoView({behavior:"smooth"});}
+function pass(t){
+  const c=cur(t);
+  if(fLive&&!PROGRESS.includes(c.st))return false;
+  if(fCat&&t.cat!==fCat)return false;
+  if(fStatus&&c.st!==fStatus)return false;
+  if(fOwner&&!(t.owner||[]).includes(fOwner))return false;
+  if(fQ){const hay=[t.no,t.name,t.cat,t.ko,(t.owner||[]).join(" "),c.goal,c.team,c.involved,c.stuck,c.blocker,c.next].join(" ").toLowerCase();if(!hay.includes(fQ.toLowerCase()))return false;}
+  return true;
+}
+function render(){
+  const visible=T.filter(pass);
+  const fi=document.getElementById("filterInfo");
+  let parts=[];
+  if(fLive)parts.push("現在進行中"); if(fQ)parts.push("「"+fQ+"」"); if(fCat)parts.push("事業所: "+fCat); if(fStatus)parts.push(fStatus); if(fOwner)parts.push("担当: "+fOwner);
+  if(!parts.length){fi.style.display="none";fi.innerHTML="";}
+  else{fi.style.display="flex";fi.innerHTML=`<span>絞り込み中：<b>${esc(parts.join(" ／ "))}</b>（${visible.length}件）</span><button id="clearF">× すべて表示</button>`;document.getElementById("clearF").onclick=()=>{clearAll();fQ="";document.getElementById("searchBox").value="";syncUI();render();};}
+  let html="",lastC=null;
+  visible.forEach(t=>{
+    const c=cur(t);
+    if(t.cat!==lastC){const n=visible.filter(x=>x.cat===t.cat).length;html+=`<tr class="gh"><td colspan="7">${t.cat}（${n}件）</td></tr>`;lastC=t.cat;}
+    const pri=t.pri==="高"?`<span class="pribadge">優先度 高</span>`:"";
+    const blk=c.blocker?`<span class="blkbadge" title="${esc(c.blocker)}">⚠ ブロッカー</span>`:"";
+    const nm=esc(t.name)+pri+blk;
+    const conf=c.conf?`<span class="confd">${esc(c.conf)}</span>`:`<span style="color:var(--soft)">—</span>`;
+    const ow=(t.owner||[]).length?`<div class="owners">${t.owner.map(x=>`<span class="own">${esc(x)}</span>`).join("")}</div>`:`<span style="color:var(--soft)">—</span>`;
+    html+=`<tr class="trow" data-id="${t.id}"><td class="num-cell">${esc(t.ko)||"—"}</td><td>${nm}</td><td>${catChip(t.cat)}</td><td><span class="badge" style="background:${STATUS[c.st].color}1a;color:${STATUS[c.st].color}">${c.st}</span></td><td class="note">${esc(c.next)||"—"}</td><td>${ow}</td><td class="num-cell">${conf}</td></tr>`;
+  });
+  document.getElementById("tbody").innerHTML=html||`<tr><td colspan="7" style="text-align:center;color:var(--soft);padding:26px">該当する案件がありません</td></tr>`;
+}
+
+/* ---- 編集ドロワー ---- */
+let dkId=null;
+function taskById(id){return T.find(t=>t.id===id);}
+function openDrawer(id){
+  const t=taskById(id); if(!t)return; dkId=id; const c=cur(t);
+  document.getElementById("dkNo").textContent=t.cat+"　｜　KickOff "+(t.ko||"—");
+  document.getElementById("dkName").textContent=t.name;
+  const meta=[];
+  meta.push(catChip(t.cat));
+  if(t.ko)meta.push(`<span class="tool">🗓 開始 ${esc(t.ko)}</span>`);
+  if(t.pri==="高")meta.push(`<span class="pribadge">優先度 高</span>`);
+  document.getElementById("dkMeta").innerHTML=meta.join(" ");
+  const sel=document.getElementById("dkSt");
+  sel.innerHTML=STORDER.map(s=>`<option value="${s}">${s}</option>`).join("");
+  sel.value=c.st;
+  document.getElementById("dkDept").value=c.dept;
+  document.getElementById("dkGoal").value=c.goal;
+  document.getElementById("dkTeam").value=c.team;
+  document.getElementById("dkInvolved").value=c.involved;
+  document.getElementById("dkStuck").value=c.stuck;
+  document.getElementById("dkBlocker").value=c.blocker;
+  document.getElementById("dkNext").value=c.next;
+  document.getElementById("dkConf").value=c.conf;
+  document.getElementById("dkHint").textContent="";
+  document.getElementById("drawerBack").classList.add("open");
+  document.getElementById("drawer").classList.add("open");
+}
+function closeDrawer(){document.getElementById("drawerBack").classList.remove("open");document.getElementById("drawer").classList.remove("open");dkId=null;}
+function saveDrawer(){
+  if(!dkId)return;
+  const g=id=>document.getElementById(id).value;
+  const o={st:g("dkSt"),dept:g("dkDept").trim()||"未設定",goal:g("dkGoal").trim(),team:g("dkTeam").trim(),involved:g("dkInvolved").trim(),stuck:g("dkStuck").trim(),blocker:g("dkBlocker").trim(),next:g("dkNext").trim(),conf:g("dkConf")};
+  store[dkId]=o;
+  persist(); renderAll();
+  document.getElementById("dkHint").textContent="保存しました ✓";
+  toast("保存しました");
+}
+document.getElementById("dkClose").onclick=closeDrawer;
+document.getElementById("drawerBack").onclick=closeDrawer;
+document.getElementById("dkSave").onclick=saveDrawer;
+document.getElementById("dkToday").onclick=()=>{document.getElementById("dkConf").value=fmtDate(new Date());};
+document.getElementById("tbody").addEventListener("click",e=>{const tr=e.target.closest(".trow");if(tr)openDrawer(tr.dataset.id);});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer();});
+
+/* ---- バックアップ・復元・リセット ---- */
+document.getElementById("btnBackup").onclick=()=>{
+  const blob=new Blob([JSON.stringify({app:"toridori-bpo",v:1,saved:new Date().toISOString(),store},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="toridori_bpo_progress_"+fmtDate(new Date())+".json";a.click();
+  toast("バックアップを書き出しました");
+};
+document.getElementById("btnRestore").onclick=()=>document.getElementById("restoreFile").click();
+document.getElementById("restoreFile").onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const j=JSON.parse(r.result);store=j.store||j||{};persist();renderAll();toast("復元しました");}catch(err){alert("ファイルを読み込めませんでした");}e.target.value="";};
+  r.readAsText(f);
+};
+document.getElementById("btnReset").onclick=()=>{
+  if(confirm("編集内容をすべて消して初期状態に戻します。よろしいですか？（バックアップは残ります）")){store={};localStorage.removeItem(SKEY);renderAll();toast("初期状態に戻しました");}
+};
+
+/* ---- 議事録から自動更新 ---- */
+let mtgProps=[];
+function parseMeeting(){
+  const txt=document.getElementById("mtgText").value;
+  const res=document.getElementById("mtgResult"); const info=document.getElementById("mtgInfo");
+  if(!txt.trim()){res.innerHTML='<div class="mtg-empty">議事録テキストを貼り付けてから「解析」を押してください。</div>';info.textContent="";return;}
+  const today=fmtDate(new Date());
+  const segs=txt.split(/\r?\n|。|；|;/).map(s=>s.trim()).filter(s=>s.length>1);
+  mtgProps=[];
+  T.forEach(t=>{
+    const refs=[];
+    const noRe=t.no!=null?new RegExp("(?:no\\.?\\s*|#|№|課題\\s*|タスク\\s*)"+t.no+"(?![0-9])","i"):null;
+    const nameKey=t.name.replace(/（.*?）/g,"").replace(/\(.*?\)/g,"").trim();
+    const nameFrag=nameKey.slice(0,6);
+    segs.forEach(s=>{
+      const hitNo=noRe&&noRe.test(s);
+      const hitName=nameFrag.length>=4 && s.includes(nameFrag);
+      if(hitNo||hitName)refs.push(s);
+    });
+    if(!refs.length)return;
+    const joined=refs.join(" / ");
+    let sug="";
+    if(/完了|done|リリース|納品|解決済|済みました|完成/.test(joined))sug="完了";
+    else if(/最終調整|ダッシュボードに統合|統合済/.test(joined))sug="最終調整中";
+    else if(/着手|開始|進行|スタート|動いて|取り掛|対応中/.test(joined))sug="進行中";
+    else if(/保留|ペンディング|見送|一旦終了|クローズ/.test(joined))sug="要確認";
+    const blocker=/ブロッカー|スタック|止ま|滞|ブロック|詰ま|待ち|エラー|不可/.test(joined)?joined:"";
+    mtgProps.push({id:t.id,no:t.no,name:t.name,refs:joined,sug,blocker,today,curSt:cur(t).st});
+  });
+  if(!mtgProps.length){res.innerHTML='<div class="mtg-empty">該当するタスクが見つかりませんでした。「No.12」のようにタスク番号を含めると確実に拾えます。</div>';info.textContent="0件ヒット";return;}
+  info.textContent=mtgProps.length+"件のタスクにヒット";
+  res.innerHTML=mtgProps.map((p,i)=>{
+    const opts=STORDER.map(s=>`<option value="${s}"${ (p.sug||p.curSt)===s?" selected":"" }>${s}</option>`).join("");
+    return `<div class="mtgcard" data-i="${i}">
+      <div class="mc-head"><input type="checkbox" class="mc-on" checked><span class="mc-no">${p.no==null?"（番号なし）":"No."+p.no}</span><span class="mc-nm">${esc(p.name)}</span></div>
+      <div class="mc-ref">議事録該当箇所：${esc(p.refs)}</div>
+      <div class="mc-grid">
+        <div><label>ステータス</label><select class="mc-st">${opts}</select></div>
+        <div><label>最終確認日</label><input type="date" class="mc-conf" value="${p.today}"></div>
+        <div class="full"><label>次のアクション（追記）</label><textarea class="mc-next">${esc(p.refs)}</textarea></div>
+        <div class="full"><label>ブロッカー</label><textarea class="mc-blk">${esc(p.blocker)}</textarea></div>
+      </div>
+    </div>`;
+  }).join("")+`<div class="mtg-row"><button class="sbtn red" id="mtgApply">✓ 選択した項目を反映して保存</button><span class="sb-meta">チェックした項目だけ更新します</span></div>`;
+  document.getElementById("mtgApply").onclick=applyMeeting;
+  document.querySelectorAll(".mtgcard .mc-on").forEach(ch=>ch.onchange=e=>{e.target.closest(".mtgcard").classList.toggle("off",!e.target.checked);});
+}
+function applyMeeting(){
+  let n=0;
+  document.querySelectorAll(".mtgcard").forEach(card=>{
+    if(!card.querySelector(".mc-on").checked)return;
+    const i=+card.dataset.i; const p=mtgProps[i]; if(!p)return;
+    const t=taskById(p.id); if(!t)return;
+    const merged=cur(t);
+    merged.st=card.querySelector(".mc-st").value;
+    const conf=card.querySelector(".mc-conf").value; if(conf)merged.conf=conf;
+    const nextAdd=card.querySelector(".mc-next").value.trim(); if(nextAdd)merged.next=nextAdd;
+    const blk=card.querySelector(".mc-blk").value.trim(); if(blk)merged.blocker=blk;
+    store[p.id]=merged;
+    n++;
+  });
+  persist(); renderAll();
+  toast(n+"件のタスクを更新しました");
+  document.getElementById("mtgResult").innerHTML='<div class="mtg-empty">'+n+'件を反映しました。一覧に保存済みです。</div>';
+}
+document.getElementById("mtgParse").onclick=parseMeeting;
+document.getElementById("mtgClear").onclick=()=>{document.getElementById("mtgText").value="";document.getElementById("mtgResult").innerHTML="";document.getElementById("mtgInfo").textContent="";};
+
+/* ---- 初期描画 ---- */
+function renderCumulative(){
+  // 着手案件（クローズ・保留[koM=null]を除く）を KickOff 月で累積。現在の状態で 完了 / 進行中 に色分け
+  const inc=T.filter(t=>t.koM!=null && cur(t).st!=="クローズ");
+  const isDone=t=>cur(t).st==="完了";
+  const data=MONTHS.map(([m,label])=>{
+    const mi=parseInt(m,10);
+    const done=inc.filter(t=>t.koM<=mi && isDone(t)).length;
+    const prog=inc.filter(t=>t.koM<=mi && !isDone(t)).length;
+    const nw=inc.filter(t=>String(t.koM)===m).length;
+    return {label:label.replace("2026年",""),done,prog,cum:done+prog,nw};
+  });
+  const max=Math.max(...data.map(d=>d.cum),1), H=180;
+  const el=document.getElementById("cumchart");
+  el.innerHTML=data.map((d,i)=>{
+    const progH=d.prog/max*H, doneH=d.done/max*H;
+    const isNow=i===data.length-1;
+    return `<div class="cum-col${isNow?" now":""}">
+      <div class="cum-total">${d.cum}</div>
+      <div class="cum-bar" style="height:${Math.max(progH+doneH,3)}px">
+        ${d.prog?`<div class="seg-new" style="height:${progH}px" title="進行中 ${d.prog}件"></div>`:""}
+        ${d.done?`<div class="seg-done" style="height:${doneH}px" title="完了 ${d.done}件"></div>`:""}
+      </div>
+      <div class="cum-m">${d.label}${isNow?"（現在）":""}</div>
+      <div class="cum-new${d.nw?"":" zero"}">${d.nw?"+"+d.nw:"±0"}</div>
+    </div>`;
+  }).join("");
+  const last=data[data.length-1];
+  document.getElementById("cumTotal").textContent=last.cum;
+  document.getElementById("cumDone").textContent=last.done;
+  document.getElementById("cumProg").textContent=last.prog;
+  document.getElementById("cumHold").textContent=T.filter(t=>cur(t).st==="保留").length;
+}
+function renderMilestones(){
+  document.getElementById("mstones").innerHTML=MILESTONES.map(m=>`<div class="mstone${m.now?" now":""}"><div class="md">${m.d}</div><div class="mdot"><i></i></div><div class="mc"><div class="mt">${esc(m.t)}</div><div class="mb">${m.b}</div></div></div>`).join("");
+}
+function renderAll(){renderSummary();renderMilestones();renderCumulative();syncUI();render();markSaved();}
+renderAll();
+</script>
+</body>
+</html>
